@@ -6,12 +6,14 @@
 
 ## List below here, in a comment/comments, the people you worked with on this assignment AND any resources you used to find code (50 point deduction for not doing so). If none, write "None".
 
-
+#  Just myself -- Sam Ehnis-Clark (sehnis)
+#  Nothing was directly copied from past assignments, but I used the material from both lectures as reference.
 
 ## [PROBLEM 1] - 150 points
 ## Below is code for one of the simplest possible Flask applications. Edit the code so that once you run this application locally and go to the URL 'http://localhost:5000/class', you see a page that says "Welcome to SI 364!"
 
-from flask import Flask
+from flask import Flask, request
+import requests
 app = Flask(__name__)
 app.debug = True
 
@@ -19,6 +21,75 @@ app.debug = True
 def hello_to_you():
     return 'Hello!'
 
+@app.route('/class')
+def class_welcome():
+    return 'Welcome to SI 364!!'
+
+
+@app.route('/movie/<movie_name>')
+def movie_search(movie_name):
+	itunes_base = 'https://itunes.apple.com/search?media=movie&term='
+	searched = requests.get(itunes_base + movie_name)
+	movie_info = str(searched.json())
+	intro_text = '<h1>Here are the results of your search:<br></h1>'
+	return intro_text + movie_info
+
+@app.route('/question', methods=['GET'])
+def question_double():
+	question_base = """<form action="/question" method='GET'>
+	Enter your favorite number:<br>
+	<input type="text" name="favorite"><br>
+	<input type="submit" value="Submit"></form>"""
+	if request.method == "GET":
+		if request.args.get('favorite'):
+			new_number = int(request.args.get('favorite','0')) * 2
+			question_base += ("<br>Double your favorite number is " + str(new_number) + ".")
+	return question_base
+
+@app.route('/problem4form', methods=['GET'])
+def question_four():
+	question_base = """<form action="/problem4form" method='GET'>
+	<h1>Cryptocurrency Lookup</h1><br>
+	Enter the name of the one-word cryptocurrency you want to search:<br>
+	<input type="text" name="crypto_name"><br>
+	Data to show:<br>
+	<input type="checkbox" name="symbol"> Exchange symbol<br>
+	<input type="checkbox" name="usd_price"> Price in USD<br>
+	<input type="checkbox" name="btc_price"> Price in Bitcoin<br>
+	<input type="checkbox" name="rank"> CoinMarketCap rank<br>
+	<input type="checkbox" name="24h"> % Change in past 24 hours<br>
+	<input type="submit" value="Submit"></form><br>
+	Click <a href='https://coinmarketcap.com/all/views/all/'>here</a> for a full list of supported currencies.<br>
+	<i>Some examples: ripple, dogecoin, bitcoin, tron</i>."""
+
+	api_base = "https://api.coinmarketcap.com/v1/ticker/"
+
+	if request.method == "GET":
+
+		found_crypto = requests.get(api_base + str(request.args.get('crypto_name'))).json()
+		if 'error' in found_crypto:
+			if request.args.get('crypto_name'):
+				return question_base + '<br><hr><br>Error: no cryptocurrency found with that name.'
+			else:
+				return question_base
+
+		if request.args.get('crypto_name') == '':
+			return question_base + '<br><hr><br>Error: no cryptocurrency name entered.'
+
+
+		if request.args.get('crypto_name'):
+			question_base += ("<br><hr><br>You selected <b>" + found_crypto[0]['name'] + "</b>.<br><br>")
+		if request.args.get('symbol'):
+			question_base += ("Symbol: <b>" + found_crypto[0]['symbol'] + "</b>.<br>")
+		if request.args.get('usd_price'):
+			question_base += ("Price in USD: <b>" + found_crypto[0]['price_usd'] + "</b>.<br>")
+		if request.args.get('btc_price'):
+			question_base += ("Price in Bitcoin: <b>" + found_crypto[0]['price_btc'] + "</b>.<br>")
+		if request.args.get('rank'):
+			question_base += ("CoinMarketCap Rank: <b>" + found_crypto[0]['rank'] + "</b>.<br>")
+		if request.args.get('24h'):
+			question_base += ("% Change in past 24 hours: <b>" + found_crypto[0]['percent_change_24h'] + "%</b>.<br>")
+	return question_base
 
 if __name__ == '__main__':
     app.run()
@@ -31,7 +102,6 @@ if __name__ == '__main__':
 #  "resultCount":0,
 #  "results": []
 # }
-
 
 ## You should use the iTunes Search API to get that data.
 ## Docs for that API are here: https://affiliate.itunes.apple.com/resources/documentation/itunes-store-web-service-search-api/
